@@ -1,30 +1,32 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import * as L from 'leaflet'; // Fix: Changed import to standard 'import * as L from "leaflet";'
+// Fix: Augment the 'leaflet' module to include types for the 'leaflet.heat' plugin.
+// This provides type definitions for L.HeatLayer class and L.heatLayer factory function.
+declare module 'leaflet' {
+    // Augment the existing L namespace exported by the 'leaflet' module
+    namespace L { 
+        // Fix: Use L.Layer to correctly reference the base Layer class from Leaflet.
+        class HeatLayer extends L.Layer {
+            constructor(latlngs: [number, number, number][], options?: any);
+            // L.Layer already defines addTo and remove, so explicit re-declaration is often not needed
+            // unless there's a specific conflict or different signature expected by the plugin.
+        }
+
+        // The L.heatLayer factory function is added to the L namespace by the plugin.
+        function heatLayer(latlngs: [number, number, number][], options?: any): HeatLayer;
+    }
+}
+import * as L from 'leaflet'; 
 import 'leaflet.heat'; // Make sure this is imported after L is defined
 import { CloseIcon } from './icons/CloseIcon';
 import { PlayIcon } from './icons/PlayIcon';
 import { StopIcon } from './icons/StopIcon';
-import { Trip, TripStage, DriverStatus } from '../types';
-import { getMockTrip, getHeatmapData, ratePassenger } from '../services/apiService';
+import { Trip, TripStage, DriverStatus, Transaction } from '../types';
+import { getMockTrip, getHeatmapData, ratePassenger, getTransactions } from '../services/apiService';
 import TripRequestCard from './TripRequestCard';
 import RatePassengerModal from './RatePassengerModal';
 
-// Fix: Augment the 'leaflet' module to include types for the 'leaflet.heat' plugin.
-// This provides type definitions for L.HeatLayer class and L.heatLayer factory function.
-declare module 'leaflet' {
-    // L.HeatLayer extends L.Layer, so it needs constructor and addTo/remove methods.
-    // The L.HeatLayer class is dynamically added by the plugin, so we declare it here.
-    // Fix: Correctly extend L.Layer from the leaflet namespace.
-    class HeatLayer extends L.Layer {
-        constructor(latlngs: [number, number, number][], options?: any);
-        // L.Layer already defines addTo and remove, so explicit re-declaration is often not needed
-        // unless there's a specific conflict or different signature expected by the plugin.
-    }
 
-    // The L.heatLayer factory function is added to the L namespace by the plugin.
-    function heatLayer(latlngs: [number, number, number][], options?: any): HeatLayer;
-}
 
 
 interface MapScreenProps {
@@ -40,6 +42,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
     const [isMarkerFlashing, setIsMarkerFlashing] = useState(false);
     const [showRatePassengerModal, setShowRatePassengerModal] = useState(false);
     const [lastCompletedTripId, setLastCompletedTripId] = useState<string | null>(null);
+    const [currentDailyEarnings, setCurrentDailyEarnings] = useState<number>(0);
 
 
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -54,6 +57,32 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
 
 
     const isDriverApproved = driverStatus === DriverStatus.APPROVED;
+
+    const fetchDailyEarnings = useCallback(async () => {
+        try {
+            const transactions = await getTransactions(loggedInUserEmail);
+            const today = new Date();
+            const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD for comparison
+
+            const earnings = transactions
+                .filter(t => 
+                    (t.type === 'earning' || t.type === 'tip' || t.type === 'bonus') && 
+                    new Date(t.timestamp).toISOString().split('T')[0] === todayString // Compare full date
+                )
+                .reduce((sum, t) => sum + t.amount, 0);
+            setCurrentDailyEarnings(earnings);
+        } catch (error) {
+            console.error("Failed to fetch daily earnings:", error);
+            setCurrentDailyEarnings(0);
+        }
+    }, [loggedInUserEmail]);
+
+    useEffect(() => {
+        fetchDailyEarnings(); // Fetch on component mount and email change
+        const intervalId = setInterval(fetchDailyEarnings, 60000); // Refresh every minute
+        return () => clearInterval(intervalId);
+    }, [fetchDailyEarnings]);
+
 
     const handleEndTrip = useCallback(() => {
         if (simulationIntervalRef.current) {
@@ -82,7 +111,8 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
         setTripStage(TripStage.COMPLETED); // Go to completed stage to trigger rating
         setIsMarkerFlashing(false);
         // Do not immediately go back to SEARCHING, wait for rating
-    }, [activeTrip]);
+        fetchDailyEarnings(); // Refresh daily earnings after trip completion
+    }, [activeTrip, fetchDailyEarnings]);
 
     const handleRatePassenger = useCallback(async (rating: number, comment?: string) => {
         setShowRatePassengerModal(false);
@@ -381,6 +411,8 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
         }
     }, [tripStage]);
 
+    const formattedDailyEarnings = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(currentDailyEarnings);
+
 
     const renderBottomPanelContent = () => {
         if (!isOnline) {
@@ -412,7 +444,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
                             <p className="text-sm text-gray-300 mt-1">Pegar: {activeTrip.pickupAddress}</p>
                         )}
                         {tripStage === TripStage.EN_ROUTE_TO_DROPOFF && (
-                            <p className="text-sm text-gray-300 mt-1">Destino: {activeTrip.dropoffAddress}</p>
+                            <p className="text-sm text-gray-300 mt-1">Destino: ${activeTrip.dropoffAddress}</p>
                         )}
                     </div>
                     {tripStage === TripStage.ARRIVED_AT_PASSENGER && (
@@ -449,7 +481,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
                      } finally {
                          setIsAcceptingTrip(false);
                      }
-                 }} disabled={isAcceptingTrip} className="w-full flex items-center justify-center bg-goly-yellow text-goly-dark font-bold py-3 rounded-lg hover:bg-yellow-300 transition-colors disabled:bg-gray-600" aria-label={isAcceptingTrip ? 'Aguardando aceitação da corrida' : 'Receber chamada de teste'}>
+                 }} disabled={isAcceptingTrip} className="w-full flex items-center justify-center bg-goly-yellow text-goly-dark font-bold py-3 rounded-lg hover:bg-yellow-300 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed" aria-label={isAcceptingTrip ? 'Aguardando aceitação da corrida' : 'Receber chamada de teste'}>
                     <PlayIcon className="w-5 h-5 mr-2" aria-hidden="true" />
                     {isAcceptingTrip ? 'Aguardando...' : 'Receber Chamada (Teste)'}
                 </button>
@@ -461,6 +493,20 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
         <div className="h-full w-full relative">
             <div ref={mapContainerRef} className="absolute inset-0 z-0 h-full w-full bg-goly-dark" />
             
+            {/* Daily Earnings Floating Tab */}
+            {isDriverApproved && (
+                <div 
+                    className="absolute top-4 left-1/2 -translate-x-1/2 z-20 
+                                bg-gray-900/80 backdrop-blur-sm rounded-lg shadow-xl 
+                                p-3 flex items-center space-x-2"
+                    aria-live="polite"
+                    aria-atomic="true"
+                >
+                    <span className="text-sm text-gray-300 font-medium">Saldo do Dia:</span>
+                    <span className="text-lg font-bold text-goly-yellow">{formattedDailyEarnings}</span>
+                </div>
+            )}
+
             {/* Trip Request Card - Renders on top of everything when a request comes in */}
             {tripStage === TripStage.TRIP_REQUEST && activeTrip && (
                 <TripRequestCard 

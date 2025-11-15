@@ -45,7 +45,7 @@ export interface Transaction {
     description: string;
     amount: number;
     type: 'earning' | 'tip' | 'withdrawal' | 'bonus'; // Added 'bonus' type
-    timestamp: string;
+    timestamp: string; // Changed to full Date string for accurate daily filtering
 }
 
 export interface ChatMessage {

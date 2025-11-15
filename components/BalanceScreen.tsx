@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Transaction } from '../types';
 import { getTransactions, requestWithdrawal } from '../services/apiService';
@@ -7,12 +8,13 @@ import WithdrawalModal from './WithdrawalModal'; // New import
 const TransactionItem: React.FC<{ transaction: Transaction }> = ({ transaction }) => {
     const isPositive = transaction.type !== 'withdrawal';
     const formattedAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount);
+    const transactionDate = new Date(transaction.timestamp).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
 
     return (
         <div className="flex justify-between items-center p-4 bg-gray-800 rounded-lg">
             <div>
                 <p className="font-medium text-white">{transaction.description}</p>
-                <p className="text-sm text-gray-400">{transaction.timestamp}</p>
+                <p className="text-sm text-gray-400">{transactionDate}</p>
             </div>
             <p className={`text-lg font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}{formattedAmount.replace('R$', 'R$ ')}
@@ -62,15 +64,26 @@ const BalanceScreen: React.FC<BalanceScreenProps> = ({ loggedInUserEmail }) => {
         }
     };
 
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD for comparison
+
     const dailyEarnings = transactions
-        .filter(t => (t.type === 'earning' || t.type === 'tip' || t.type === 'bonus') && !t.timestamp.includes('Ontem')) // Simple logic for demo
+        .filter(t => (t.type === 'earning' || t.type === 'tip' || t.type === 'bonus') && new Date(t.timestamp).toISOString().split('T')[0] === todayString)
         .reduce((sum, t) => sum + t.amount, 0);
     
     // Mock values for week and month
-    const weeklyEarnings = dailyEarnings * 5; // Simplified for demo
-    const monthlyEarnings = dailyEarnings * 20; // Simplified for demo
+    // For weekly/monthly, it's more complex to filter accurately from a flat list, keeping simple for demo
+    const weeklyEarnings = transactions
+        .filter(t => (t.type === 'earning' || t.type === 'tip' || t.type === 'bonus') && 
+                      new Date(t.timestamp) >= new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7)) // last 7 days
+        .reduce((sum, t) => sum + t.amount, 0);
 
-    const completedRidesToday = transactions.filter(t => t.type === 'earning' && !t.timestamp.includes('Ontem')).length;
+    const monthlyEarnings = transactions
+        .filter(t => (t.type === 'earning' || t.type === 'tip' || t.type === 'bonus') && 
+                      new Date(t.timestamp) >= new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())) // last month
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const completedRidesToday = transactions.filter(t => t.type === 'earning' && new Date(t.timestamp).toISOString().split('T')[0] === todayString).length;
 
     const formattedDailyEarnings = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dailyEarnings);
     const formattedWeeklyEarnings = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(weeklyEarnings);

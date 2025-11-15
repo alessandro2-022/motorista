@@ -1,3 +1,4 @@
+
 import { DriverProfile, Ride, Transaction, Trip, DriverStatus, DriverRegistrationData } from '../types';
 
 // =================================================================
@@ -34,12 +35,12 @@ interface User {
 
 // --- INITIAL MOCK DATA ---
 const initialMockTransactions: Transaction[] = [
-    { id: '1', description: 'Tarifa da Corrida', amount: 15.50, type: 'earning', timestamp: '10:30' },
-    { id: '2', description: 'Gorjeta do Passageiro', amount: 3.00, type: 'tip', timestamp: '10:30' },
-    { id: '3', description: 'Bônus de Viagem', amount: 5.00, type: 'bonus', timestamp: '09:45' },
-    { id: '4', description: 'Tarifa da Corrida', amount: 22.75, type: 'earning', timestamp: '09:15' },
-    { id: '5', description: 'Tarifa da Corrida', amount: 8.20, type: 'earning', timestamp: '08:40' },
-    { id: '6', description: 'Pagamento Semanal', amount: -350.00, type: 'withdrawal', timestamp: 'Ontem' },
+    { id: '1', description: 'Tarifa da Corrida', amount: 15.50, type: 'earning', timestamp: new Date(new Date().setHours(10, 30, 0, 0)).toISOString() },
+    { id: '2', description: 'Gorjeta do Passageiro', amount: 3.00, type: 'tip', timestamp: new Date(new Date().setHours(10, 30, 0, 0)).toISOString() },
+    { id: '3', description: 'Bônus de Viagem', amount: 5.00, type: 'bonus', timestamp: new Date(new Date().setHours(9, 45, 0, 0)).toISOString() },
+    { id: '4', description: 'Tarifa da Corrida', amount: 22.75, type: 'earning', timestamp: new Date(new Date().setHours(9, 15, 0, 0)).toISOString() },
+    { id: '5', description: 'Tarifa da Corrida', amount: 8.20, type: 'earning', timestamp: new Date(new Date().setHours(8, 40, 0, 0)).toISOString() },
+    { id: '6', description: 'Pagamento Semanal', amount: -350.00, type: 'withdrawal', timestamp: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString() }, // Yesterday
 ];
 
 const initialMockRides: Ride[] = [
@@ -303,7 +304,7 @@ export const requestWithdrawal = (userEmail: string, amount: number, pixKey: str
         description: `Saque Pix para ${pixKey}`,
         amount: -amount, // Negative for withdrawal
         type: 'withdrawal',
-        timestamp: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+        timestamp: new Date().toISOString(), // Use ISO string for consistency
     };
     transactions.unshift(newTransaction); // Add to the beginning
     saveStoredTransactions(userEmail, transactions);
