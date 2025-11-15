@@ -3,6 +3,7 @@
   "description": "A comprehensive ride-sharing application for Goly drivers, featuring real-time trip management, earnings tracking, profile customization, and an integrated AI assistant for support and information.",
   "requestFramePermissions": [
     "geolocation",
-    "microphone"
+    "microphone",
+    "camera"
   ]
 }

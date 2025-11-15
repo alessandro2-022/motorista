@@ -1,5 +1,7 @@
+
+
 import React from 'react';
-import { DriverProfile } from '../types';
+import { DriverProfile, DriverStatus } from '../types';
 
 interface ProfileScreenProps {
     profile: DriverProfile;
@@ -25,6 +27,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile }) => {
         year: 'numeric'
     }).format(new Date(profile.memberSince));
 
+    const getStatusDisplay = (status: DriverStatus) => {
+        switch (status) {
+            case DriverStatus.PENDING_ONBOARDING:
+                return { text: 'Pendente de Cadastro', color: 'bg-yellow-500' };
+            case DriverStatus.PENDING_APPROVAL:
+                return { text: 'Aguardando Aprovação', color: 'bg-orange-500' };
+            case DriverStatus.APPROVED:
+                return { text: 'Aprovado', color: 'bg-green-500' };
+            case DriverStatus.REJECTED:
+                return { text: 'Rejeitado', color: 'bg-red-500' };
+            default:
+                return { text: 'Desconhecido', color: 'bg-gray-500' };
+        }
+    };
+
+    const { text: statusText, color: statusColor } = getStatusDisplay(profile.status);
+
     return (
         <div className="h-full w-full bg-goly-dark text-white p-6 overflow-y-auto">
             <h1 className="text-3xl font-bold text-goly-yellow mb-8">Meu Perfil</h1>
@@ -47,6 +66,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ profile }) => {
                 
                 <h2 className="mt-4 text-2xl font-semibold">{profile.name}</h2>
                 <p className="text-gray-400">Membro desde {formattedMemberSince.charAt(0).toUpperCase() + formattedMemberSince.slice(1)}</p>
+                
+                <span className={`mt-2 px-3 py-1 rounded-full text-sm font-semibold text-white ${statusColor}`}>
+                    {statusText}
+                </span>
 
                 <div className="grid grid-cols-3 gap-4 mt-6 w-full">
                     <StatCard label="Avaliação" value={`${profile.rating} ★`} />

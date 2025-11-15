@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Ride } from '../types';
 import { getRideHistory } from '../services/apiService';
@@ -6,7 +7,7 @@ import { CloseIcon } from './icons/CloseIcon';
 
 
 const RideItem: React.FC<{ ride: Ride, onClick: () => void }> = ({ ride, onClick }) => (
-    <button onClick={onClick} className="w-full flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
+    <button onClick={onClick} className="w-full flex items-center justify-between p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors" aria-label={`Ver detalhes da corrida com ${ride.passengerName}`}>
         <div className="flex items-center">
             <img src={ride.passengerAvatarUrl} alt={ride.passengerName} className="w-12 h-12 rounded-full" />
             <div className="ml-4 text-left">
@@ -25,11 +26,11 @@ const RideDetailModal: React.FC<{ ride: Ride, onClose: () => void }> = ({ ride, 
     const paymentMethodPortuguese = ride.paymentMethod === 'Credit Card' ? 'Cartão de Crédito' : 'Dinheiro';
 
     return (
-        <div className="fixed inset-0 bg-black/70 z-30 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 z-30 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="ride-detail-title">
             <div className="bg-gray-900 rounded-xl w-full max-w-md shadow-2xl animate-fade-in-up">
                 <div className="flex justify-between items-center p-4 border-b border-gray-700">
-                    <h2 className="text-xl font-bold text-goly-yellow">Detalhes da Corrida</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700">
+                    <h2 id="ride-detail-title" className="text-xl font-bold text-goly-yellow">Detalhes da Corrida</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-700" aria-label="Fechar detalhes da corrida">
                         <CloseIcon className="w-6 h-6 text-gray-300" />
                     </button>
                 </div>
@@ -67,16 +68,26 @@ const RideDetailModal: React.FC<{ ride: Ride, onClose: () => void }> = ({ ride, 
     );
 };
 
-const HistoryScreen: React.FC = () => {
+interface HistoryScreenProps {
+    loggedInUserEmail: string;
+}
+
+const HistoryScreen: React.FC<HistoryScreenProps> = ({ loggedInUserEmail }) => {
     const [rides, setRides] = useState<Ride[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const ridesPerPage = 5; // Number of rides to display per page
+
     useEffect(() => {
         const fetchHistory = async () => {
+            setIsLoading(true);
+            setError(null);
             try {
-                const data = await getRideHistory();
+                const data = await getRideHistory(loggedInUserEmail); // Pass userEmail
                 setRides(data);
             } catch (err) {
                 setError("Não foi possível carregar o histórico de corridas.");
@@ -86,7 +97,25 @@ const HistoryScreen: React.FC = () => {
             }
         };
         fetchHistory();
-    }, []);
+    }, [loggedInUserEmail]); // Re-fetch if loggedInUserEmail changes
+
+    // Calculate current rides to display
+    const indexOfLastRide = currentPage * ridesPerPage;
+    const indexOfFirstRide = indexOfLastRide - ridesPerPage;
+    const currentRides = rides.slice(indexOfFirstRide, indexOfLastRide);
+    const totalPages = Math.ceil(rides.length / ridesPerPage);
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(prevPage => prevPage + 1);
+        }
+    };
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(prevPage => prevPage - 1);
+        }
+    };
 
     return (
         <div className="h-full w-full bg-goly-dark text-white p-6 overflow-y-auto">
@@ -97,15 +126,41 @@ const HistoryScreen: React.FC = () => {
             ) : error ? (
                 <div className="text-center text-red-400">{error}</div>
             ) : (
-                <div className="space-y-3">
-                    {rides.length > 0 ? (
-                        rides.map(ride => (
-                            <RideItem key={ride.id} ride={ride} onClick={() => setSelectedRide(ride)} />
-                        ))
-                    ) : (
-                        <p className="text-center text-gray-400">Nenhuma corrida no seu histórico.</p>
+                <>
+                    <div className="space-y-3">
+                        {currentRides.length > 0 ? (
+                            currentRides.map(ride => (
+                                <RideItem key={ride.id} ride={ride} onClick={() => setSelectedRide(ride)} />
+                            ))
+                        ) : (
+                            <p className="text-center text-gray-400">Nenhuma corrida no seu histórico para esta página.</p>
+                        )}
+                    </div>
+
+                    {totalPages > 1 && ( // Only show pagination if there's more than one page
+                        <nav className="flex justify-center items-center gap-4 mt-8" aria-label="Navegação do histórico de corridas">
+                            <button
+                                onClick={handlePreviousPage}
+                                disabled={currentPage === 1}
+                                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                aria-label="Página anterior"
+                            >
+                                Anterior
+                            </button>
+                            <span className="text-gray-300" aria-live="polite">
+                                Página {currentPage} de {totalPages}
+                            </span>
+                            <button
+                                onClick={handleNextPage}
+                                disabled={currentPage === totalPages}
+                                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                aria-label="Próxima página"
+                            >
+                                Próxima
+                            </button>
+                        </nav>
                     )}
-                </div>
+                </>
             )}
 
             {selectedRide && <RideDetailModal ride={selectedRide} onClose={() => setSelectedRide(null)} />}

@@ -5,12 +5,14 @@ import { WalletIcon } from './icons/WalletIcon';
 import { HistoryIcon } from './icons/HistoryIcon';
 import { ChatIcon } from './icons/ChatIcon';
 import { CloseIcon } from './icons/CloseIcon';
+import { LogoutIcon } from './icons/LogoutIcon'; // New import
 
 interface SideMenuProps {
     isOpen: boolean;
     onClose: () => void;
     onNavigate: (view: AppView) => void;
     profile: DriverProfile;
+    onLogout: () => void; // New prop for logout
 }
 
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
@@ -20,7 +22,7 @@ const NavItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => v
     </button>
 );
 
-const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onNavigate, profile }) => {
+const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onNavigate, profile, onLogout }) => {
     return (
         <>
             <div 
@@ -53,6 +55,10 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onNavigate, profil
                         <NavItem icon={<HistoryIcon className="w-6 h-6"/>} label="Histórico de Corridas" onClick={() => onNavigate(AppView.HISTORY)} />
                         <NavItem icon={<ChatIcon className="w-6 h-6"/>} label="Assistente Goly IA" onClick={() => onNavigate(AppView.CHAT)} />
                     </nav>
+
+                    <div className="mt-4 border-t border-gray-700 pt-4">
+                         <NavItem icon={<LogoutIcon className="w-6 h-6"/>} label="Sair" onClick={onLogout} />
+                    </div>
 
                     <div className="text-center text-xs text-gray-500 p-2">
                         App Goly Motorista v1.0.0
