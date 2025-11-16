@@ -1,20 +1,19 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 // Fix: Augment the 'leaflet' module to include types for the 'leaflet.heat' plugin.
 // This provides type definitions for L.HeatLayer class and L.heatLayer factory function.
 declare module 'leaflet' {
-    // Augment the existing L namespace exported by the 'leaflet' module
-    namespace L { 
-        // Fix: Use L.Layer to correctly reference the base Layer class from Leaflet.
-        class HeatLayer extends L.Layer {
-            constructor(latlngs: [number, number, number][], options?: any);
-            // L.Layer already defines addTo and remove, so explicit re-declaration is often not needed
-            // unless there's a specific conflict or different signature expected by the plugin.
-        }
-
-        // The L.heatLayer factory function is added to the L namespace by the plugin.
-        function heatLayer(latlngs: [number, number, number][], options?: any): HeatLayer;
+    // Directly add to the 'leaflet' module's L namespace.
+    // L.Layer will correctly refer to the base Layer class from the original 'leaflet' module.
+    class HeatLayer extends L.Layer {
+        constructor(latlngs: [number, number, number][], options?: any);
+        // L.Layer already defines addTo and remove, so explicit re-declaration is often not needed
+        // unless there's a specific conflict or different signature expected by the plugin.
     }
+
+    // The L.heatLayer factory function is added to the L namespace by the plugin.
+    function heatLayer(latlngs: [number, number, number][], options?: any): HeatLayer;
 }
 import * as L from 'leaflet'; 
 import 'leaflet.heat'; // Make sure this is imported after L is defined
