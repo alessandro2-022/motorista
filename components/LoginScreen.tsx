@@ -33,13 +33,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToRegister
     };
 
     return (
-        <div className="h-full w-full bg-goly-dark text-white flex flex-col items-center justify-center p-6">
-            <div className="w-16 h-16 bg-goly-blue rounded-full flex items-center justify-center font-black text-4xl text-goly-yellow mb-6">
+        <div className="h-full w-full bg-goly-blue text-white flex flex-col items-center justify-center p-6">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center font-black text-4xl text-goly-yellow mb-6">
                 G
             </div>
             <h1 className="text-4xl font-bold text-goly-yellow mb-8">Bem-vindo Motorista Goly!</h1>
             
-            <form onSubmit={handleSubmit} className="bg-gray-900 p-8 rounded-xl shadow-lg w-full max-w-sm">
+            <form onSubmit={handleSubmit} className="bg-goly-dark p-8 rounded-xl shadow-lg w-full max-w-sm">
                 <div className="mb-5">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2 sr-only">Email</label>
                     <input
@@ -84,7 +84,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onNavigateToRegister
                 <p className="text-gray-400">Não tem uma conta?</p>
                 <button
                     onClick={onNavigateToRegister}
-                    className="text-goly-blue hover:text-blue-400 font-medium transition-colors mt-2"
+                    className="text-goly-yellow hover:text-yellow-300 font-medium transition-colors mt-2"
                     disabled={isLoading}
                 >
                     Cadastre-se agora

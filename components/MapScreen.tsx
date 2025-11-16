@@ -1,6 +1,8 @@
 
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import * as L from 'leaflet'; 
+import 'leaflet.heat'; // Make sure this is imported after L is defined
 // Fix: Augment the 'leaflet' module to include types for the 'leaflet.heat' plugin.
 // This provides type definitions for L.HeatLayer class and L.heatLayer factory function.
 declare module 'leaflet' {
@@ -15,8 +17,6 @@ declare module 'leaflet' {
     // The L.heatLayer factory function is added to the L namespace by the plugin.
     function heatLayer(latlngs: [number, number, number][], options?: any): HeatLayer;
 }
-import * as L from 'leaflet'; 
-import 'leaflet.heat'; // Make sure this is imported after L is defined
 import { CloseIcon } from './icons/CloseIcon';
 import { PlayIcon } from './icons/PlayIcon';
 import { StopIcon } from './icons/StopIcon';
