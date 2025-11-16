@@ -1,13 +1,14 @@
 
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import * as L from 'leaflet'; 
-import 'leaflet.heat'; // Make sure this is imported after L is defined
+
 // Fix: Augment the 'leaflet' module to include types for the 'leaflet.heat' plugin.
 // This provides type definitions for L.HeatLayer class and L.heatLayer factory function.
+// IMPORTANT: This 'declare module' block must come BEFORE any 'import * as L from "leaflet"'
+// to ensure type augmentation is applied correctly by TypeScript.
 declare module 'leaflet' {
-    // Directly add to the 'leaflet' module's L namespace.
-    // L.Layer will correctly refer to the base Layer class from the original 'leaflet' module.
+    // When inside 'declare module "leaflet"', types from the 'L' namespace are typically accessed via 'L.Type'.
+    // Correctly referencing 'L.Layer' for the base class.
     class HeatLayer extends L.Layer {
         constructor(latlngs: [number, number, number][], options?: any);
         // L.Layer already defines addTo and remove, so explicit re-declaration is often not needed
@@ -17,6 +18,10 @@ declare module 'leaflet' {
     // The L.heatLayer factory function is added to the L namespace by the plugin.
     function heatLayer(latlngs: [number, number, number][], options?: any): HeatLayer;
 }
+
+import * as L from 'leaflet'; 
+import 'leaflet.heat'; // Make sure this is imported after L is defined
+
 import { CloseIcon } from './icons/CloseIcon';
 import { PlayIcon } from './icons/PlayIcon';
 import { StopIcon } from './icons/StopIcon';
@@ -222,6 +227,11 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
                 if (passengerMarkerRef.current && mapRef.current) {
                     mapRef.current.removeLayer(passengerMarkerRef.current);
                     passengerMarkerRef.current = null;
+                }
+                // Clear the route to passenger
+                if (routeLayerRef.current && mapRef.current) {
+                    mapRef.current.removeLayer(routeLayerRef.current);
+                    routeLayerRef.current = null;
                 }
             }
         }, 1000);
@@ -474,6 +484,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
                      try {
                          const tripData = await getMockTrip();
                          setActiveTrip(tripData);
+                         // handleAcceptTrip(tripData); // Call handleAcceptTrip after setting activeTrip
                      } catch (error) {
                          console.error("Falha ao buscar dados da corrida para solicitação", error);
                          setTripStage(TripStage.SEARCHING); // Fallback
@@ -533,7 +544,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ driverStatus, loggedInUserEmail }
                                 disabled={!!activeTrip || !isDriverApproved || tripStage === TripStage.TRIP_REQUEST}
                                 aria-label={isOnline ? 'Alternar para offline' : 'Alternar para online'}
                             />
-                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-goly-blue peer-disabled:opacity-50"></div>
+                            <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-1/2 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-goly-blue peer-disabled:opacity-50"></div>
                         </label>
                     </div>
 
